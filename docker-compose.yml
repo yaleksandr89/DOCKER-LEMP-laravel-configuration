@@ -2,33 +2,31 @@ version: '3'
 services:
 
   #Php-fpm Service
-  php-fpm:
+  app:
     build:
       context: docker/php-fpm/
       dockerfile: Dockerfile
-    container_name: php-fpm
+    container_name: app
     restart: unless-stopped
     tty: true
     environment:
-      SERVICE_NAME: app
-      SERVICE_TAGS: dev
       XDEBUG_CONFIG: "remote_host=192.168.220.1 remote_enable=1"
       PHP_IDE_CONFIG: "serverName=PHPSTORM"
     working_dir: /var/www
+    links:
+      - db:db
     volumes:
       - ./www:/var/www
       - ./docker/php-fpm/local.ini:/usr/local/etc/php-fpm/conf.d/local.ini
-    links:
-      - mariadb
     networks:
       - laravel-network
 
   #Nginx Service
-  nginx:
+  webserver:
     build:
       context: ./docker/nginx/
       dockerfile: Dockerfile
-    container_name: nginx
+    container_name: webserver
     restart: unless-stopped
     tty: true
     ports:
@@ -40,18 +38,18 @@ services:
       - ./hosts/:/etc/nginx/conf.d
       - ./logs:/var/log/nginx
       - ./www:/var/www
-    links:
-      - php-fpm
-      - mariadb
+    depends_on:
+      - app
+      - db
     networks:
       - laravel-network
 
   #MariaDB Service
-  mariadb:
+  db:
     build:
       context: ./docker/mysql/
       dockerfile: Dockerfile
-    container_name: mariadb
+    container_name: db
     restart: unless-stopped
     tty: true
     ports:
@@ -59,8 +57,6 @@ services:
     environment:
       MYSQL_DATABASE: ${DB_DATABASE}
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
-      SERVICE_TAGS: dev
-      SERVICE_NAME: mysql
     volumes:
       - ./mysql:/var/lib/mysql/
       - ./docker/mysql/my.cnf:/etc/mysql/my.cnf
@@ -76,11 +72,13 @@ services:
     ports:
       - 81:80
     environment:
+      MYSQL_HOST: ${DB_HOST}
       MYSQL_USERNAME: ${DB_USERNAME}
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
     links:
-      - nginx
-      - mariadb
+      - db:db
+    depends_on:
+      - db
     networks:
       - laravel-network
 
