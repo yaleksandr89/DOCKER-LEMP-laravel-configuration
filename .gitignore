@@ -1,3 +1,9 @@
+### Custom rules ###
+www/
+hosts/training-l.conf
+docker/nginx/ssl/training-l.loc+1.pem
+docker/nginx/ssl/training-l.loc+1-key.pem
+
 ### Composer ###
 composer.phar
 /vendor/
